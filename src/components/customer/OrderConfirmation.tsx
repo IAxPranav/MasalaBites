@@ -44,17 +44,16 @@ export default function OrderConfirmation({
         !isNotificationUnsupported() &&
         Notification.permission === 'granted'
       ) {
-        // 1. Try Service Worker Notification (Required for Android Mobile)
+        // Mobile requires Service Worker notification trigger
         if ('serviceWorker' in navigator) {
           const registration = await navigator.serviceWorker.getRegistration();
           if (registration && registration.active) {
             await registration.showNotification(title, {
               body,
-              icon: '/icon.png', // path to your app icon
-              badge: '/badge.png',
+              icon: '/icon-192.png',
+              vibrate: [120, 50, 120],
             });
           } else {
-            // Fallback to standard web notification
             new Notification(title, { body });
           }
         } else {
@@ -62,12 +61,11 @@ export default function OrderConfirmation({
         }
       }
 
-      // Haptic feedback trigger
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate([120, 50, 120]);
       }
     } catch (err) {
-      console.error('Notification error:', err);
+      console.error('Notification display error:', err);
     }
   };
 
