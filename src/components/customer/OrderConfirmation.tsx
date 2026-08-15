@@ -18,7 +18,6 @@ export default function OrderConfirmation({
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const previousReadyItemsRef = useRef<string[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
     try {
@@ -72,12 +71,6 @@ export default function OrderConfirmation({
   }, [customerPhone]);
 
   useEffect(() => {
-    if (!toastMessage) return;
-    const timeout = window.setTimeout(() => setToastMessage(null), 3600);
-    return () => window.clearTimeout(timeout);
-  }, [toastMessage]);
-
-  useEffect(() => {
     if (!order) return;
     const nextStatus = order.status;
     if (previousStatusRef.current && previousStatusRef.current !== nextStatus) {
@@ -89,7 +82,6 @@ export default function OrderConfirmation({
       };
 
       const message = statusMessages[nextStatus] || 'Your order status just changed.';
-      setToastMessage(message);
       showStatusAlert(`Order update: ${ORDER_STATUS_LABELS[nextStatus]}`, message);
     }
     previousStatusRef.current = nextStatus;
@@ -105,7 +97,6 @@ export default function OrderConfirmation({
         newReadyNames.length === 1
           ? `${newReadyNames[0]} is ready!`
           : `${newReadyNames.join(', ')} are ready!`;
-      setToastMessage(readyText);
       showStatusAlert('Your order is ready', readyText);
     }
 
@@ -155,15 +146,6 @@ export default function OrderConfirmation({
       </div>
 
       <div className="mx-auto max-w-5xl px-5 py-6 lg:px-8 lg:py-10">
-        {toastMessage && (
-          <div
-            aria-live="polite"
-            className="pointer-events-none fixed left-1/2 top-4 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 rounded-2xl border border-cardamom/30 bg-cardamom/95 px-4 py-3 text-sm font-medium text-surface shadow-xl"
-          >
-            {toastMessage}
-          </div>
-        )}
-
         <div className="grid gap-5 lg:grid-cols-2">
           {/* Left: Status tracker */}
           <div>
