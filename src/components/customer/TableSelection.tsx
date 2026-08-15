@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Users, ArrowRight, Flame } from 'lucide-react';
 
 type TableSelectionProps = {
+  customerPhone: string | null;
+  onCustomerPhoneChange: (phone: string | null) => void;
   onSelect: (table: number) => void;
 };
 
@@ -29,8 +31,23 @@ function StampLogo({ size = 48 }: { size?: number }) {
   );
 }
 
-export default function TableSelection({ onSelect }: TableSelectionProps) {
+export default function TableSelection({
+  customerPhone,
+  onCustomerPhoneChange,
+  onSelect,
+}: TableSelectionProps) {
   const [selected, setSelected] = useState<number | null>(null);
+  const [loginPhone, setLoginPhone] = useState(customerPhone ?? '');
+
+  useEffect(() => {
+    setLoginPhone(customerPhone ?? '');
+  }, [customerPhone]);
+
+  const handleLogin = () => {
+    const cleanPhone = loginPhone.replace(/\D/g, '').slice(-10);
+    if (!cleanPhone) return;
+    onCustomerPhoneChange(cleanPhone);
+  };
 
   return (
     <div className="min-h-screen bg-bg">
@@ -106,7 +123,23 @@ export default function TableSelection({ onSelect }: TableSelectionProps) {
           <ArrowRight className="h-4 w-4" />
         </button>
 
-        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-ink-soft lg:mt-8">
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-4 lg:mt-8">
+          <p className="text-center text-sm font-bold text-ink">Already ordered something? Please log in</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input
+              type="tel"
+              value={loginPhone}
+              onChange={(e) => setLoginPhone(e.target.value)}
+              placeholder="Enter phone number"
+              className="w-full rounded-xl border border-line bg-bg-alt px-3 py-2.5 text-sm text-ink outline-none transition-colors focus:border-primary"
+            />
+            <button onClick={handleLogin} className="btn-secondary shrink-0 justify-center">
+              Log in
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-ink-soft">
           <Flame className="h-3.5 w-3.5 text-primary" />
           <span>Freshly prepared authentic Indian cuisine</span>
         </div>

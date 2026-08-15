@@ -34,6 +34,7 @@ export type CartItem = {
 export type Order = {
   id: string;
   table_number: number;
+  customer_phone: string | null;
   status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
   payment_method: 'counter' | 'online';
   payment_status: 'unpaid' | 'paid';

@@ -1,13 +1,15 @@
-import { useState } from 'react';
-import { ArrowLeft, CreditCard, Store, CheckCircle2, Loader2, Receipt } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, CreditCard, Store, CheckCircle2, Loader2, Receipt, Bell } from 'lucide-react';
 import { supabase, type CartItem } from '@/lib/supabase';
 
 type CheckoutScreenProps = {
   items: CartItem[];
   totalAmount: number;
   tableNumber: number;
+  customerPhone: string | null;
+  onCustomerPhoneChange: (phone: string | null) => void;
   onBack: () => void;
-  onOrderPlaced: (orderId: string) => void;
+  onOrderPlaced: (orderId: string, paymentMethod: 'counter' | 'online') => void;
   onClearCart: () => void;
 };
 
@@ -17,6 +19,8 @@ export default function CheckoutScreen({
   items,
   totalAmount,
   tableNumber,
+  customerPhone,
+  onCustomerPhoneChange,
   onBack,
   onOrderPlaced,
   onClearCart,
@@ -24,20 +28,44 @@ export default function CheckoutScreen({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('counter');
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState(customerPhone ?? '');
+  const [allowNotifications, setAllowNotifications] = useState(() => {
+    try {
+      return localStorage.getItem('masala-bites-order-notifications') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    setPhoneNumber(customerPhone ?? '');
+  }, [customerPhone]);
 
   const formatPrice = (price: number) => `¥${Math.round(price)}`;
   const taxRate = 0.1;
   const tax = totalAmount * taxRate;
   const grandTotal = totalAmount + tax;
 
-  const placeOrder = async () => {
+  const normalizePhone = (value: string) => value.replace(/\D/g, '').slice(-10);
+
+  const placeOrder = async (phoneValue: string) => {
     setPlacing(true);
     setError(null);
     try {
+      const cleanPhone = normalizePhone(phoneValue);
+      if (!cleanPhone) {
+        throw new Error('Phone number is required');
+      }
+
+      onCustomerPhoneChange(cleanPhone);
+      localStorage.setItem('masala-bites-order-notifications', String(allowNotifications));
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           table_number: tableNumber,
+          customer_phone: cleanPhone,
           status: 'pending',
           payment_method: paymentMethod,
           payment_status: paymentMethod === 'online' ? 'paid' : 'unpaid',
@@ -61,13 +89,34 @@ export default function CheckoutScreen({
       if (itemsError) throw itemsError;
 
       onClearCart();
-      onOrderPlaced(order.id);
+      onOrderPlaced(order.id, paymentMethod);
     } catch (err) {
       console.error('Error placing order:', err);
       setError('Failed to place order. Please try again.');
     } finally {
       setPlacing(false);
+      setShowPhoneModal(false);
     }
+  };
+
+  const confirmOrder = async () => {
+    const cleanPhone = normalizePhone(phoneNumber);
+    if (!cleanPhone) {
+      setError('Please add your phone number so we can track your order.');
+      return;
+    }
+
+    if (allowNotifications && 'Notification' in window) {
+      try {
+        if (Notification.permission === 'default') {
+          await Notification.requestPermission();
+        }
+      } catch {
+        // ignore browser permission issues
+      }
+    }
+
+    await placeOrder(cleanPhone);
   };
 
   return (
@@ -195,7 +244,7 @@ export default function CheckoutScreen({
 
             <button
               disabled={placing || items.length === 0}
-              onClick={placeOrder}
+              onClick={() => setShowPhoneModal(true)}
               className="btn-primary w-full"
             >
               {placing ? (
@@ -210,6 +259,52 @@ export default function CheckoutScreen({
           </div>
         </div>
       </div>
+
+      {showPhoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-line bg-surface p-5 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Bell className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-display text-xl font-bold text-ink">Just one quick thing</p>
+                <p className="text-xs text-ink-soft">So we can track your order later.</p>
+              </div>
+            </div>
+
+            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="e.g. 98765 43210"
+              className="w-full rounded-2xl border border-line bg-bg-alt px-3 py-3 text-sm text-ink outline-none transition-colors focus:border-primary"
+            />
+
+            <label className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-bg-alt p-3 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={allowNotifications}
+                onChange={(e) => setAllowNotifications(e.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              Send me playful order status updates
+            </label>
+
+            <div className="mt-5 flex gap-3">
+              <button onClick={() => setShowPhoneModal(false)} className="btn-secondary flex-1 justify-center">
+                Cancel
+              </button>
+              <button onClick={confirmOrder} className="btn-primary flex-1 justify-center" disabled={placing}>
+                {placing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Place Order'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

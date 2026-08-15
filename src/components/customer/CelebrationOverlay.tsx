@@ -5,10 +5,23 @@ import { useEffect, useState } from 'react';
  * Features a diya lamp glow, radiating mandala rings, floating marigold petals,
  * and a warm "Shubh!" blessing with a checkmark stamp.
  */
-export default function CelebrationOverlay() {
+type CelebrationOverlayProps = {
+  paymentMethod: 'counter' | 'online';
+};
+
+export default function CelebrationOverlay({ paymentMethod }: CelebrationOverlayProps) {
   const [petals, setPetals] = useState<
-    Array<{ id: number; x: number; delay: number; duration: number; size: number; rotate: number; color: string; sway: number }>
+    Array<{ id: number; x: number; delay: number; duration: number; size: number; rotate: number; color: string; sway: number }> 
   >([]);
+
+  const headline =
+    paymentMethod === 'online'
+      ? 'Cha-ching!'
+      : 'Counter classic!';
+  const subheadline =
+    paymentMethod === 'online'
+      ? 'Payment approved and the kitchen is sprinting.'
+      : 'The kitchen has your order — we will sort the counter payment soon.';
 
   useEffect(() => {
     const colors = ['#E3A72B', '#F59E0B', '#FBBF24', '#F97316', '#EAB308', '#D97706'];
@@ -141,10 +154,10 @@ export default function CelebrationOverlay() {
         {/* Text */}
         <div className="mt-8 text-center" style={{ animation: 'textRise 0.5s ease 0.3s both' }}>
           <p className="font-display text-4xl font-bold text-surface" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
-            Shubh!
+            {headline}
           </p>
           <p className="mt-2 font-mono text-sm tracking-wider text-saffron">
-            Your order has been placed
+            {subheadline}
           </p>
         </div>
       </div>

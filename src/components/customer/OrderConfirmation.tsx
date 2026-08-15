@@ -1,21 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, ChefHat, Bell, ArrowLeft, Receipt, Flame } from 'lucide-react';
 import { supabase, ORDER_STATUS_LABELS, type Order, type OrderItem } from '@/lib/supabase';
 
 type OrderConfirmationProps = {
   orderId: string;
   tableNumber: number;
+  customerPhone: string | null;
   onBackToMenu: () => void;
 };
 
 export default function OrderConfirmation({
   orderId,
   tableNumber,
+  customerPhone,
   onBackToMenu,
 }: OrderConfirmationProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('masala-bites-order-notifications') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const previousStatusRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetchOrder();
@@ -32,6 +43,47 @@ export default function OrderConfirmation({
       supabase.removeChannel(channel);
     };
   }, [orderId]);
+
+  useEffect(() => {
+    setNotificationsEnabled(
+      (() => {
+        try {
+          return localStorage.getItem('masala-bites-order-notifications') === 'true';
+        } catch {
+          return false;
+        }
+      })(),
+    );
+  }, [customerPhone]);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timeout = window.setTimeout(() => setToastMessage(null), 3600);
+    return () => window.clearTimeout(timeout);
+  }, [toastMessage]);
+
+  useEffect(() => {
+    if (!order) return;
+    const nextStatus = order.status;
+    if (previousStatusRef.current && previousStatusRef.current !== nextStatus) {
+      const statusMessages: Record<string, string> = {
+        pending: 'Kitchen got your order — we are on it!',
+        preparing: 'The chef is firing it up — your meal is getting delicious.',
+        ready: 'Your food is ready to grab — come get your feast!',
+        completed: 'Everything is wrapped up — enjoy your meal!',
+      };
+
+      const message = statusMessages[nextStatus] || 'Your order status just changed.';
+      setToastMessage(message);
+
+      if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(`Order update: ${ORDER_STATUS_LABELS[nextStatus]}`, {
+          body: message,
+        });
+      }
+    }
+    previousStatusRef.current = nextStatus;
+  }, [order, notificationsEnabled]);
 
   const fetchOrder = async () => {
     const { data: orderData } = await supabase
@@ -74,6 +126,12 @@ export default function OrderConfirmation({
       </div>
 
       <div className="mx-auto max-w-5xl px-5 py-6 lg:px-8 lg:py-10">
+        {toastMessage && (
+          <div className="mb-4 rounded-2xl border border-cardamom/30 bg-cardamom/10 px-4 py-3 text-sm font-medium text-cardamom shadow-sm">
+            {toastMessage}
+          </div>
+        )}
+
         <div className="grid gap-5 lg:grid-cols-2">
           {/* Left: Status tracker */}
           <div>
