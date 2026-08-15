@@ -19,6 +19,7 @@ export default function OrderConfirmation({
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const previousReadyItemsRef = useRef<string[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
     try {
       return localStorage.getItem('masala-bites-order-notifications') === 'true';
@@ -27,6 +28,20 @@ export default function OrderConfirmation({
     }
   });
   const previousStatusRef = useRef<string | null>(null);
+  const isMobileBrowser = () => /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '');
+  const showStatusAlert = (title: string, body: string) => {
+    try {
+      if (notificationsEnabled && 'Notification' in window && !isMobileBrowser() && Notification.permission === 'granted') {
+        new Notification(title, { body });
+      }
+
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate([120, 50, 120]);
+      }
+    } catch {
+      // ignore browser API issues
+    }
+  };
 
   useEffect(() => {
     fetchOrder();
@@ -75,15 +90,27 @@ export default function OrderConfirmation({
 
       const message = statusMessages[nextStatus] || 'Your order status just changed.';
       setToastMessage(message);
-
-      if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification(`Order update: ${ORDER_STATUS_LABELS[nextStatus]}`, {
-          body: message,
-        });
-      }
+      showStatusAlert(`Order update: ${ORDER_STATUS_LABELS[nextStatus]}`, message);
     }
     previousStatusRef.current = nextStatus;
   }, [order, notificationsEnabled]);
+
+  useEffect(() => {
+    const readyItems = orderItems.filter((item) => item.is_ready);
+    const readyNames = readyItems.map((item) => item.name);
+    const newReadyNames = readyNames.filter((name) => !previousReadyItemsRef.current.includes(name));
+
+    if (newReadyNames.length > 0) {
+      const readyText =
+        newReadyNames.length === 1
+          ? `${newReadyNames[0]} is ready!`
+          : `${newReadyNames.join(', ')} are ready!`;
+      setToastMessage(readyText);
+      showStatusAlert('Your order is ready', readyText);
+    }
+
+    previousReadyItemsRef.current = readyNames;
+  }, [orderItems]);
 
   const fetchOrder = async () => {
     const { data: orderData } = await supabase
@@ -102,6 +129,8 @@ export default function OrderConfirmation({
 
   const formatPrice = (price: number) => `¥${Math.round(price)}`;
   const status = order?.status || 'pending';
+  const readyItems = orderItems.filter((item) => item.is_ready);
+  const readyItemNames = readyItems.map((item) => item.name);
 
   const steps = [
     { key: 'pending', label: 'Order Received', icon: Receipt },
@@ -127,7 +156,10 @@ export default function OrderConfirmation({
 
       <div className="mx-auto max-w-5xl px-5 py-6 lg:px-8 lg:py-10">
         {toastMessage && (
-          <div className="mb-4 rounded-2xl border border-cardamom/30 bg-cardamom/10 px-4 py-3 text-sm font-medium text-cardamom shadow-sm">
+          <div
+            aria-live="polite"
+            className="pointer-events-none fixed left-1/2 top-4 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 rounded-2xl border border-cardamom/30 bg-cardamom/95 px-4 py-3 text-sm font-medium text-surface shadow-xl"
+          >
             {toastMessage}
           </div>
         )}
@@ -217,13 +249,26 @@ export default function OrderConfirmation({
             {!loading && order && (
               <div className="rounded-2xl border border-line bg-surface p-5 lg:p-6">
                 <h3 className="mb-3 text-sm font-bold text-ink">Order Details</h3>
+                {readyItemNames.length > 0 && (
+                  <div className="mb-4 rounded-2xl border border-cardamom/30 bg-cardamom/10 p-3 text-sm text-cardamom">
+                    <span className="font-bold">Ready now:</span> {readyItemNames.join(', ')}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   {orderItems.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <div>
-                        <span className="font-medium text-ink">
-                          {item.quantity}x {item.name}
-                        </span>
+                    <div key={item.id} className="flex justify-between gap-3 text-sm">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-ink">
+                            {item.quantity}x {item.name}
+                          </span>
+                          {item.is_ready && (
+                            <span className="rounded-full border border-cardamom/30 bg-cardamom/10 px-2 py-0.5 text-[0.6rem] font-bold uppercase text-cardamom">
+                              Ready
+                            </span>
+                          )}
+                        </div>
                         {item.notes && (
                           <p className="text-xs italic text-primary">"{item.notes}"</p>
                         )}

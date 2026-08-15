@@ -78,6 +78,16 @@ export default function KitchenPanel({ onExit }: KitchenPanelProps) {
     fetchOrders();
   };
 
+  const toggleItemReady = async (itemId: string, isReady: boolean) => {
+    setUpdatingId(itemId);
+    await supabase
+      .from('order_items')
+      .update({ is_ready: !isReady, ready_at: !isReady ? new Date().toISOString() : null })
+      .eq('id', itemId);
+    setUpdatingId(null);
+    fetchOrders();
+  };
+
   const togglePaymentStatus = async (orderId: string, currentStatus: string) => {
     setUpdatingId(orderId);
     const newStatus = currentStatus === 'paid' ? 'unpaid' : 'paid';
@@ -101,7 +111,7 @@ export default function KitchenPanel({ onExit }: KitchenPanelProps) {
 
   const pendingCount = orders.filter((o) => o.status === 'pending').length;
   const preparingCount = orders.filter((o) => o.status === 'preparing').length;
-  const readyCount = orders.filter((o) => o.status === 'ready').length;
+  const readyCount = orders.filter((o) => o.status === 'ready' || o.order_items.some((item) => item.is_ready)).length;
 
   const filterTabs: { key: FilterStatus; label: string; count?: number }[] = [
     { key: 'all', label: 'All' },
@@ -217,9 +227,10 @@ export default function KitchenPanel({ onExit }: KitchenPanelProps) {
               <OrderCard
                 key={order.id}
                 order={order}
-                updating={updatingId === order.id}
+                updating={updatingId === order.id || updatingId !== null && order.order_items.some((item) => item.id === updatingId)}
                 onUpdateStatus={updateOrderStatus}
                 onTogglePayment={togglePaymentStatus}
+                onToggleItemReady={toggleItemReady}
                 formatPrice={formatPrice}
                 formatTime={formatTime}
               />
@@ -236,6 +247,7 @@ function OrderCard({
   updating,
   onUpdateStatus,
   onTogglePayment,
+  onToggleItemReady,
   formatPrice,
   formatTime,
 }: {
@@ -243,6 +255,8 @@ function OrderCard({
   updating: boolean;
   onUpdateStatus: (orderId: string, status: string) => void;
   onTogglePayment: (orderId: string, currentStatus: string) => void;
+  onToggleItemReady: (itemId: string, isReady: boolean) => void;
+  onToggleItemReady: (itemId: string, isReady: boolean) => void;
   formatPrice: (price: number) => string;
   formatTime: (dateStr: string) => string;
 }) {
@@ -298,12 +312,32 @@ function OrderCard({
       <div className="py-3">
         <div className="space-y-2">
           {order.order_items.map((item) => (
-            <div key={item.id} className="flex items-start gap-2">
+            <div
+              key={item.id}
+              className={`flex items-start gap-2 rounded-xl border p-2 ${
+                item.is_ready
+                  ? 'border-cardamom/30 bg-cardamom/10'
+                  : 'border-line bg-bg-alt/40'
+              }`}
+            >
               <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-primary/10 font-mono text-xs font-bold text-primary">
                 {item.quantity}
               </span>
               <div className="flex-1">
-                <p className="text-sm font-medium text-ink">{item.name}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-ink">{item.name}</p>
+                  <button
+                    onClick={() => onToggleItemReady(item.id, item.is_ready)}
+                    disabled={updating}
+                    className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase ${
+                      item.is_ready
+                        ? 'bg-cardamom/15 text-cardamom'
+                        : 'bg-saffron/15 text-primary'
+                    }`}
+                  >
+                    {item.is_ready ? 'Ready' : 'Mark Ready'}
+                  </button>
+                </div>
                 {item.notes && (
                   <p className="text-xs italic text-primary">"{item.notes}"</p>
                 )}

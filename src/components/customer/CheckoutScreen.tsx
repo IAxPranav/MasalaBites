@@ -48,6 +48,7 @@ export default function CheckoutScreen({
   const grandTotal = totalAmount + tax;
 
   const normalizePhone = (value: string) => value.replace(/\D/g, '').slice(-10);
+  const isMobileBrowser = () => /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '');
 
   const placeOrder = async (phoneValue: string) => {
     setPlacing(true);
@@ -83,6 +84,7 @@ export default function CheckoutScreen({
         price: item.price,
         quantity: item.quantity,
         notes: item.notes || null,
+        is_ready: false,
       }));
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
@@ -106,7 +108,7 @@ export default function CheckoutScreen({
       return;
     }
 
-    if (allowNotifications && 'Notification' in window) {
+    if (allowNotifications && 'Notification' in window && !isMobileBrowser()) {
       try {
         if (Notification.permission === 'default') {
           await Notification.requestPermission();

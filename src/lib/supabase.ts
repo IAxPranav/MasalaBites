@@ -52,6 +52,8 @@ export type OrderItem = {
   price: number;
   quantity: number;
   notes: string | null;
+  is_ready: boolean;
+  ready_at: string | null;
   created_at: string;
 };
 
