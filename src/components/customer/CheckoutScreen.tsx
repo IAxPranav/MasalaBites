@@ -48,7 +48,17 @@ export default function CheckoutScreen({
   const grandTotal = totalAmount + tax;
 
   const normalizePhone = (value: string) => value.replace(/\D/g, '').slice(-10);
-  const isMobileBrowser = () => /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '');
+  // iOS Safari doesn't support the Notification API unless the site is installed
+  // as a home-screen PWA. Every other mobile browser (Android Chrome, etc.) supports
+  // it fine, so we only need to guard against that specific case — not all mobile devices.
+  const isNotificationUnsupported = () => {
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isStandalone =
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
+      window.matchMedia?.('(display-mode: standalone)').matches;
+    return isIOS && !isStandalone;
+  };
 
   const placeOrder = async (phoneValue: string) => {
     setPlacing(true);
@@ -108,7 +118,7 @@ export default function CheckoutScreen({
       return;
     }
 
-    if (allowNotifications && 'Notification' in window && !isMobileBrowser()) {
+    if (allowNotifications && 'Notification' in window && !isNotificationUnsupported()) {
       try {
         if (Notification.permission === 'default') {
           await Notification.requestPermission();

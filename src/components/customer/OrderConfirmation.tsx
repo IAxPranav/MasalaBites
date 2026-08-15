@@ -27,10 +27,23 @@ export default function OrderConfirmation({
     }
   });
   const previousStatusRef = useRef<string | null>(null);
-  const isMobileBrowser = () => /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '');
+
+  const isNotificationUnsupported = () => {
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isStandalone =
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
+      window.matchMedia?.('(display-mode: standalone)').matches;
+    return isIOS && !isStandalone;
+  };
   const showStatusAlert = (title: string, body: string) => {
     try {
-      if (notificationsEnabled && 'Notification' in window && !isMobileBrowser() && Notification.permission === 'granted') {
+      if (
+        notificationsEnabled &&
+        'Notification' in window &&
+        !isNotificationUnsupported() &&
+        Notification.permission === 'granted'
+      ) {
         new Notification(title, { body });
       }
 
@@ -44,17 +57,32 @@ export default function OrderConfirmation({
 
   useEffect(() => {
     fetchOrder();
-    const channel = supabase
-      .channel(`order-${orderId}`)
+
+    const ordersChannel = supabase
+      .channel(`order-updates-${orderId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        (payload) => setOrder(payload.new as Order),
+        (payload) => setOrder(payload.new as Order)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_items', filter: `order_id=eq.${orderId}` },
+        () => {
+          // Re-fetch or update order items when an item's status changes
+          supabase
+            .from('order_items')
+            .select('*')
+            .eq('order_id', orderId)
+            .then(({ data }) => {
+              if (data) setOrderItems(data);
+            });
+        }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ordersChannel);
     };
   }, [orderId]);
 

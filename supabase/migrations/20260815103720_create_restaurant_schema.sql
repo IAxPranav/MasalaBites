@@ -77,7 +77,7 @@ DROP POLICY IF EXISTS "anon_read_menu_items" ON menu_items;
 CREATE POLICY "anon_read_menu_items" ON menu_items FOR SELECT
   TO anon, authenticated USING (true);
 
--- orders: public read + insert (customers create orders, kitchen reads them)
+
 DROP POLICY IF EXISTS "anon_read_orders" ON orders;
 CREATE POLICY "anon_read_orders" ON orders FOR SELECT
   TO anon, authenticated USING (true);
