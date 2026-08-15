@@ -36,7 +36,7 @@ export default function OrderConfirmation({
       window.matchMedia?.('(display-mode: standalone)').matches;
     return isIOS && !isStandalone;
   };
-  const showStatusAlert = (title: string, body: string) => {
+  const showStatusAlert = async (title: string, body: string) => {
     try {
       if (
         notificationsEnabled &&
@@ -44,14 +44,30 @@ export default function OrderConfirmation({
         !isNotificationUnsupported() &&
         Notification.permission === 'granted'
       ) {
-        new Notification(title, { body });
+        // 1. Try Service Worker Notification (Required for Android Mobile)
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration && registration.active) {
+            await registration.showNotification(title, {
+              body,
+              icon: '/icon.png', // path to your app icon
+              badge: '/badge.png',
+            });
+          } else {
+            // Fallback to standard web notification
+            new Notification(title, { body });
+          }
+        } else {
+          new Notification(title, { body });
+        }
       }
 
+      // Haptic feedback trigger
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate([120, 50, 120]);
       }
-    } catch {
-      // ignore browser API issues
+    } catch (err) {
+      console.error('Notification error:', err);
     }
   };
 

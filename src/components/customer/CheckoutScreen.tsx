@@ -121,10 +121,13 @@ export default function CheckoutScreen({
     if (allowNotifications && 'Notification' in window && !isNotificationUnsupported()) {
       try {
         if (Notification.permission === 'default') {
-          await Notification.requestPermission();
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            console.warn('Notification permission was not granted.');
+          }
         }
-      } catch {
-        // ignore browser permission issues
+      } catch (err) {
+        console.error('Error requesting notification permission:', err);
       }
     }
 
