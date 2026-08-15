@@ -40,6 +40,24 @@ function App() {
     useCart();
   const { tableNumber, setTableNumber } = useTableNumber();
 
+  // ── Handle hash navigation on mount ──────────────────────────
+  const applyHash = (hash: string) => {
+    if (hash === '#kitchen') { setView('kitchen'); return true; }
+    if (hash === '#admin') { setView('admin'); return true; }
+    if (hash === '#cashcounter') { setView('cashcounter'); return true; }
+    return false;
+  };
+
+  // Listen for runtime hash changes (user edits URL while page is loaded)
+  useEffect(() => {
+    const handleHashChange = () => {
+      applyHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
@@ -50,18 +68,8 @@ function App() {
       setCustomerPhone(savedPhone);
     }
 
-    if (hash === '#kitchen') {
-      setView('kitchen');
-      return;
-    }
-    if (hash === '#admin') {
-      setView('admin');
-      return;
-    }
-    if (hash === '#cashcounter') {
-      setView('cashcounter');
-      return;
-    }
+    if (applyHash(hash)) return;
+
 
     if (savedOrderId && tableNumber) {
       setPlacedOrderId(savedOrderId);
