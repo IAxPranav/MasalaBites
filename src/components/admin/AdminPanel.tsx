@@ -1,44 +1,64 @@
 import { useState } from 'react';
-import { Flame, UtensilsCrossed, BarChart3, DollarSign, LogOut } from 'lucide-react';
+import {
+  UtensilsCrossed,
+  BarChart3,
+  DollarSign,
+  LogOut,
+  ChefHat,
+  Layers,
+  Star,
+  Flame,
+} from 'lucide-react';
 import MenuManager from '@/components/admin/MenuManager';
 import TablesManager from '@/components/admin/TablesManager';
 import IncomeView from '@/components/admin/IncomeView';
 import AnalyticsView from '@/components/admin/AnalyticsView';
+import ReviewsView from '@/components/admin/ReviewsView';
+import KitchenPanel from '@/components/kitchen/KitchenPanel';
 
-type Tab = 'menu' | 'tables' | 'income' | 'analytics';
+type Tab = 'menu' | 'tables' | 'kitchen' | 'income' | 'analytics' | 'reviews';
 
 type AdminPanelProps = {
   onExit: () => void;
 };
 
 const TABS: { key: Tab; label: string; icon: typeof Flame }[] = [
-  { key: 'menu', label: 'Menu', icon: Flame },
+  { key: 'menu', label: 'Menu', icon: Layers },
   { key: 'tables', label: 'Tables', icon: UtensilsCrossed },
+  { key: 'kitchen', label: 'Kitchen', icon: ChefHat },
   { key: 'income', label: 'Income', icon: DollarSign },
   { key: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { key: 'reviews', label: 'Reviews', icon: Star },
 ];
 
 export default function AdminPanel({ onExit }: AdminPanelProps) {
   const [tab, setTab] = useState<Tab>('menu');
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="admin-shell">
       {/* Header */}
-      <div className="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur-md">
-        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
+      <div className="admin-header">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-3">
+            {/* Logo + Title */}
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-ink">
-                <Flame className="h-5 w-5 text-primary" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--admin-accent)]">
+                <Flame className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="font-display text-base font-bold text-ink lg:text-lg">Admin Panel</h1>
-                <p className="eyebrow">Masala Bites - Management</p>
+                <h1 className="admin-font text-sm font-bold text-[var(--admin-ink)] lg:text-base">
+                  Masala Bites
+                </h1>
+                <p className="admin-mono text-[0.6rem] tracking-widest uppercase text-[var(--admin-ink-muted)]">
+                  Admin Panel
+                </p>
               </div>
             </div>
+
+            {/* Exit */}
             <button
               onClick={onExit}
-              className="flex h-9 items-center gap-1.5 rounded-full border border-line bg-bg px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+              className="admin-btn-ghost"
             >
               <LogOut className="h-3.5 w-3.5" />
               Exit
@@ -46,18 +66,15 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
           </div>
 
           {/* Tab navigation */}
-          <div className="mt-3 flex gap-1.5 overflow-x-auto hide-scrollbar">
+          <div className="flex gap-1 overflow-x-auto pb-2 hide-scrollbar">
             {TABS.map((t) => {
               const Icon = t.icon;
               return (
                 <button
                   key={t.key}
+                  id={`admin-tab-${t.key}`}
                   onClick={() => setTab(t.key)}
-                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-all ${
-                    tab === t.key
-                      ? 'bg-ink text-surface'
-                      : 'bg-bg-alt text-ink-soft hover:bg-line'
-                  }`}
+                  className={`admin-tab ${tab === t.key ? 'is-active' : ''}`}
                 >
                   <Icon className="h-3.5 w-3.5" />
                   {t.label}
@@ -72,8 +89,12 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
       <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:px-8">
         {tab === 'menu' && <MenuManager />}
         {tab === 'tables' && <TablesManager />}
+        {tab === 'kitchen' && (
+          <KitchenPanel onExit={() => setTab('menu')} isAdminView={true} />
+        )}
         {tab === 'income' && <IncomeView />}
         {tab === 'analytics' && <AnalyticsView />}
+        {tab === 'reviews' && <ReviewsView />}
       </div>
     </div>
   );

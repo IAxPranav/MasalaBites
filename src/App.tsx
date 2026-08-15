@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, Flame } from 'lucide-react';
 import TableSelection from '@/components/customer/TableSelection';
 import MenuScreen from '@/components/customer/MenuScreen';
 import CartDrawer from '@/components/customer/CartDrawer';
 import CheckoutScreen from '@/components/customer/CheckoutScreen';
 import OrderConfirmation from '@/components/customer/OrderConfirmation';
+import GroceryStore from '@/components/customer/GroceryStore';
 import KitchenPanel from '@/components/kitchen/KitchenPanel';
 import KitchenGate from '@/components/kitchen/KitchenGate';
 import AdminPanel from '@/components/admin/AdminPanel';
 import AdminGate from '@/components/admin/AdminGate';
+import CashCounterPanel from '@/components/cashcounter/CashCounterPanel';
+import CashCounterGate from '@/components/cashcounter/CashCounterGate';
 import CelebrationOverlay from '@/components/customer/CelebrationOverlay';
 import { supabase } from '@/lib/supabase';
 import { useCart, useTableNumber } from '@/hooks/useCart';
 
-type View = 'table' | 'menu' | 'checkout' | 'confirmation' | 'kitchen' | 'admin';
+type View = 'table' | 'menu' | 'checkout' | 'confirmation' | 'kitchen' | 'admin' | 'grocery' | 'cashcounter';
 type PaymentMethod = 'counter' | 'online';
 
 const CUSTOMER_PHONE_KEY = 'masala-bites-customer-phone';
@@ -54,6 +56,10 @@ function App() {
     }
     if (hash === '#admin') {
       setView('admin');
+      return;
+    }
+    if (hash === '#cashcounter') {
+      setView('cashcounter');
       return;
     }
 
@@ -126,6 +132,10 @@ function App() {
     }, 2600);
   };
 
+  if (view === 'grocery') {
+    return <GroceryStore onBack={() => setView('table')} />;
+  }
+
   if (view === 'table') {
     return (
       <TableSelection
@@ -135,6 +145,7 @@ function App() {
           setTableNumber(num);
           setView('menu');
         }}
+        onGroceryStore={() => setView('grocery')}
       />
     );
   }
@@ -214,6 +225,14 @@ function App() {
       <AdminGate onExit={() => setView('table')}>
         <AdminPanel onExit={() => setView('table')} />
       </AdminGate>
+    );
+  }
+
+  if (view === 'cashcounter') {
+    return (
+      <CashCounterGate onExit={() => setView('table')}>
+        <CashCounterPanel onExit={() => setView('table')} />
+      </CashCounterGate>
     );
   }
 

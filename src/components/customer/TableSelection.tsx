@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Users, ArrowRight, Flame } from 'lucide-react';
+import { Users, ArrowRight, Flame, ShoppingBag } from 'lucide-react';
 
 type TableSelectionProps = {
   customerPhone: string | null;
   onCustomerPhoneChange: (phone: string | null) => void;
   onSelect: (table: number) => void;
+  onGroceryStore: () => void;
 };
 
 const TABLES = Array.from({ length: 12 }, (_, i) => ({
@@ -35,6 +36,7 @@ export default function TableSelection({
   customerPhone,
   onCustomerPhoneChange,
   onSelect,
+  onGroceryStore,
 }: TableSelectionProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const [loginPhone, setLoginPhone] = useState(customerPhone ?? '');
@@ -142,6 +144,24 @@ export default function TableSelection({
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-ink-soft">
           <Flame className="h-3.5 w-3.5 text-primary" />
           <span>Freshly prepared authentic Indian cuisine</span>
+        </div>
+
+        {/* Grocery Store CTA */}
+        <div className="mt-8 rounded-2xl border border-dashed border-cardamom/40 bg-cardamom/5 p-5 text-center">
+          <div className="mb-2 flex justify-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-cardamom/30 bg-cardamom/10">
+              <ShoppingBag className="h-6 w-6 text-cardamom" />
+            </div>
+          </div>
+          <p className="text-sm font-bold text-ink">Masala Bites Grocery</p>
+          <p className="mt-0.5 text-xs text-ink-soft">Shop fresh spices & meal kits at home</p>
+          <button
+            onClick={onGroceryStore}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-cardamom/40 bg-cardamom/10 px-4 py-2.5 text-xs font-bold text-cardamom transition-all hover:bg-cardamom/20 active:scale-95"
+          >
+            <ShoppingBag className="h-3.5 w-3.5" />
+            Visit Grocery Store
+          </button>
         </div>
       </div>
     </div>

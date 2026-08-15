@@ -61,6 +61,16 @@ export type OrderWithItems = Order & {
   order_items: OrderItem[];
 };
 
+export type Review = {
+  id: string;
+  menu_item_id: string | null;
+  rating: number;
+  comment: string | null;
+  customer_name: string | null;
+  show_on_menu: boolean;
+  created_at: string;
+};
+
 export const CATEGORIES = [
   'Starters',
   'Main Course',

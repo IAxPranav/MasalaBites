@@ -10,6 +10,9 @@ import {
   UtensilsCrossed,
   Receipt,
   AlertCircle,
+  Pencil,
+  RotateCcw,
+  Lock,
 } from 'lucide-react';
 import {
   supabase,
@@ -20,15 +23,18 @@ import {
 
 type KitchenPanelProps = {
   onExit: () => void;
+  isAdminView?: boolean;
 };
 
 type FilterStatus = 'all' | 'pending' | 'preparing' | 'ready' | 'completed';
 
-export default function KitchenPanel({ onExit }: KitchenPanelProps) {
+export default function KitchenPanel({ onExit, isAdminView = false }: KitchenPanelProps) {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  // Cards that the admin has unlocked for editing
+  const [editingIds, setEditingIds] = useState<Set<string>>(new Set());
 
   const fetchOrders = useCallback(async () => {
     let query = supabase
@@ -78,6 +84,22 @@ export default function KitchenPanel({ onExit }: KitchenPanelProps) {
     fetchOrders();
   };
 
+  const revertOrderStatus = async (orderId: string, currentStatus: string) => {
+    const prevStatus: Record<string, string> = {
+      preparing: 'pending',
+      ready: 'preparing',
+      completed: 'ready',
+    };
+    if (!prevStatus[currentStatus]) return;
+    setUpdatingId(orderId);
+    await supabase
+      .from('orders')
+      .update({ status: prevStatus[currentStatus], updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+    setUpdatingId(null);
+    fetchOrders();
+  };
+
   const toggleItemReady = async (itemId: string, isReady: boolean) => {
     setUpdatingId(itemId);
     await supabase
@@ -99,10 +121,22 @@ export default function KitchenPanel({ onExit }: KitchenPanelProps) {
     fetchOrders();
   };
 
-  const formatPrice = (price: number) => `¥${Math.round(price)}`;
+  const toggleEditMode = (orderId: string) => {
+    setEditingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
+  };
+
+  const formatPrice = (price: number) => `₹${Math.round(price)}`;
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
@@ -132,11 +166,21 @@ export default function KitchenPanel({ onExit }: KitchenPanelProps) {
                 <ChefHat className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h1 className="font-display text-base font-bold text-ink lg:text-lg">Kitchen Panel</h1>
-                <p className="eyebrow">Masala Bites - Live</p>
+                <h1 className="font-display text-base font-bold text-ink lg:text-lg">
+                  {isAdminView ? 'Kitchen Monitor' : 'Kitchen Panel'}
+                </h1>
+                <p className="eyebrow">
+                  {isAdminView ? 'Admin spectator — click Edit to modify' : 'Masala Bites - Live'}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {isAdminView && (
+                <div className="flex items-center gap-1.5 rounded-full border border-saffron/30 bg-saffron/10 px-3 py-1">
+                  <Lock className="h-3 w-3 text-primary" />
+                  <span className="text-[0.65rem] font-bold text-primary">SPECTATOR MODE</span>
+                </div>
+              )}
               <button onClick={fetchOrders} className="icon-btn">
                 <RefreshCw className="h-4 w-4" />
               </button>
@@ -227,12 +271,16 @@ export default function KitchenPanel({ onExit }: KitchenPanelProps) {
               <OrderCard
                 key={order.id}
                 order={order}
-                updating={updatingId === order.id || updatingId !== null && order.order_items.some((item) => item.id === updatingId)}
+                updating={updatingId === order.id || (updatingId !== null && order.order_items.some((item) => item.id === updatingId))}
                 onUpdateStatus={updateOrderStatus}
+                onRevertStatus={revertOrderStatus}
                 onTogglePayment={togglePaymentStatus}
                 onToggleItemReady={toggleItemReady}
                 formatPrice={formatPrice}
                 formatTime={formatTime}
+                isAdminView={isAdminView}
+                isEditing={editingIds.has(order.id)}
+                onToggleEdit={() => toggleEditMode(order.id)}
               />
             ))}
           </div>
@@ -246,19 +294,26 @@ function OrderCard({
   order,
   updating,
   onUpdateStatus,
+  onRevertStatus,
   onTogglePayment,
   onToggleItemReady,
   formatPrice,
   formatTime,
+  isAdminView,
+  isEditing,
+  onToggleEdit,
 }: {
   order: OrderWithItems;
   updating: boolean;
   onUpdateStatus: (orderId: string, status: string) => void;
+  onRevertStatus: (orderId: string, currentStatus: string) => void;
   onTogglePayment: (orderId: string, currentStatus: string) => void;
-  onToggleItemReady: (itemId: string, isReady: boolean) => void;
   onToggleItemReady: (itemId: string, isReady: boolean) => void;
   formatPrice: (price: number) => string;
   formatTime: (dateStr: string) => string;
+  isAdminView: boolean;
+  isEditing: boolean;
+  onToggleEdit: () => void;
 }) {
   const status = order.status;
   const minutesAgo = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
@@ -275,6 +330,15 @@ function OrderCard({
     ready: 'Mark Completed',
   };
 
+  const prevStatus: Record<string, string> = {
+    preparing: 'pending',
+    ready: 'preparing',
+    completed: 'ready',
+  };
+
+  // In admin view, controls are only active if this card is in edit mode
+  const controlsActive = !isAdminView || isEditing;
+
   return (
     <div
       className={`rounded-2xl border bg-surface p-4 transition-shadow hover:shadow-md ${
@@ -283,7 +347,7 @@ function OrderCard({
           : status === 'ready'
             ? 'border-cardamom/40'
             : 'border-line'
-      }`}
+      } ${isAdminView && isEditing ? 'ring-2 ring-primary/30' : ''}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-line pb-3">
@@ -301,11 +365,27 @@ function OrderCard({
             </p>
           </div>
         </div>
-        <span
-          className={`rounded-full border px-2.5 py-1 text-xs font-bold ${ORDER_STATUS_COLORS[status]}`}
-        >
-          {ORDER_STATUS_LABELS[status]}
-        </span>
+        <div className="flex flex-col items-end gap-1.5">
+          <span
+            className={`rounded-full border px-2.5 py-1 text-xs font-bold ${ORDER_STATUS_COLORS[status]}`}
+          >
+            {ORDER_STATUS_LABELS[status]}
+          </span>
+          {/* Admin edit toggle */}
+          {isAdminView && (
+            <button
+              onClick={onToggleEdit}
+              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase transition-all ${
+                isEditing
+                  ? 'bg-primary/15 text-primary'
+                  : 'bg-bg-alt text-ink-soft hover:bg-saffron/10 hover:text-primary'
+              }`}
+            >
+              <Pencil className="h-2.5 w-2.5" />
+              {isEditing ? 'Editing' : 'Edit'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Items */}
@@ -327,13 +407,13 @@ function OrderCard({
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-ink">{item.name}</p>
                   <button
-                    onClick={() => onToggleItemReady(item.id, item.is_ready)}
-                    disabled={updating}
-                    className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase ${
+                    onClick={() => controlsActive && onToggleItemReady(item.id, item.is_ready)}
+                    disabled={updating || !controlsActive}
+                    className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase transition-all ${
                       item.is_ready
                         ? 'bg-cardamom/15 text-cardamom'
                         : 'bg-saffron/15 text-primary'
-                    }`}
+                    } ${!controlsActive ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
                     {item.is_ready ? 'Ready' : 'Mark Ready'}
                   </button>
@@ -360,13 +440,13 @@ function OrderCard({
           </span>
         </div>
         <button
-          onClick={() => onTogglePayment(order.id, order.payment_status)}
-          disabled={updating}
+          onClick={() => controlsActive && onTogglePayment(order.id, order.payment_status)}
+          disabled={updating || !controlsActive}
           className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold transition-all disabled:opacity-50 ${
             order.payment_status === 'paid'
               ? 'border-cardamom/30 bg-cardamom/10 text-cardamom hover:bg-cardamom/20'
               : 'border-saffron/30 bg-saffron/10 text-primary hover:bg-saffron/20'
-          }`}
+          } ${!controlsActive ? 'cursor-not-allowed' : ''}`}
         >
           {order.payment_status === 'paid' ? (
             <>
@@ -388,24 +468,47 @@ function OrderCard({
           <p className="font-mono text-[0.6rem] uppercase text-ink-soft">Total</p>
           <p className="font-mono text-base font-bold text-ink">{formatPrice(order.total)}</p>
         </div>
-        {status !== 'completed' && status !== 'cancelled' ? (
-          <button
-            onClick={() => onUpdateStatus(order.id, nextStatus[status])}
-            disabled={updating}
-            className={`rounded-full px-4 py-2.5 text-xs font-bold text-surface shadow-sm transition-all active:scale-95 disabled:opacity-50 ${
-              status === 'pending'
-                ? 'bg-blue-600 hover:bg-blue-700'
-                : status === 'preparing'
-                  ? 'bg-cardamom hover:bg-cardamom'
-                  : 'bg-ink hover:bg-ink'
-            }`}
-          >
-            {updating ? 'Updating...' : nextStatusLabel[status]}
-          </button>
-        ) : (
-          <span className="font-mono text-xs font-medium text-ink-soft">Complete</span>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Revert button — visible for kitchen (always) or admin (only when editing) */}
+          {prevStatus[status] && controlsActive && (
+            <button
+              onClick={() => onRevertStatus(order.id, status)}
+              disabled={updating}
+              title={`Revert to ${prevStatus[status]}`}
+              className="flex items-center gap-1 rounded-full border border-line bg-bg-alt px-2.5 py-1.5 text-[0.6rem] font-bold text-ink-soft transition-all hover:border-primary/40 hover:text-primary disabled:opacity-50"
+            >
+              <RotateCcw className="h-2.5 w-2.5" />
+              Revert
+            </button>
+          )}
+
+          {status !== 'completed' && status !== 'cancelled' ? (
+            <button
+              onClick={() => controlsActive && onUpdateStatus(order.id, nextStatus[status])}
+              disabled={updating || !controlsActive}
+              className={`rounded-full px-4 py-2.5 text-xs font-bold text-surface shadow-sm transition-all active:scale-95 disabled:opacity-50 ${
+                status === 'pending'
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : status === 'preparing'
+                    ? 'bg-cardamom hover:bg-cardamom'
+                    : 'bg-ink hover:bg-ink'
+              } ${!controlsActive ? 'cursor-not-allowed opacity-40' : ''}`}
+            >
+              {updating ? 'Updating...' : nextStatusLabel[status] ?? 'Update'}
+            </button>
+          ) : (
+            <span className="font-mono text-xs font-medium text-ink-soft">Complete</span>
+          )}
+        </div>
       </div>
+
+      {/* Admin locked hint */}
+      {isAdminView && !isEditing && (
+        <div className="mt-2 flex items-center justify-center gap-1 rounded-lg bg-bg-alt px-3 py-1.5">
+          <Lock className="h-3 w-3 text-ink-soft/60" />
+          <span className="text-[0.6rem] text-ink-soft/60">Click Edit to modify this order</span>
+        </div>
+      )}
     </div>
   );
 }

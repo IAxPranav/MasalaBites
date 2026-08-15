@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Search, Plus, Minus, X, Flame, Star, ShoppingBag, ChefHat, Receipt } from 'lucide-react';
-import { supabase, CATEGORIES, type MenuItem, type CartItem, spiceLabel } from '@/lib/supabase';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Search, Plus, Minus, X, Flame, Star, ShoppingBag, ChefHat, Receipt, MessageSquare } from 'lucide-react';
+import { supabase, CATEGORIES, type MenuItem, type CartItem, type Review, spiceLabel } from '@/lib/supabase';
+import ReviewModal from '@/components/customer/ReviewModal';
 
 type MenuScreenProps = {
   tableNumber: number;
@@ -62,10 +63,32 @@ export default function MenuScreen({
   const [detailQty, setDetailQty] = useState(1);
   const [detailNotes, setDetailNotes] = useState('');
   const [bumpKey, setBumpKey] = useState(0);
+  const [itemReviews, setItemReviews] = useState<Review[]>([]);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewTargetItem, setReviewTargetItem] = useState<MenuItem | null>(null);
+
+  const fetchItemReviews = useCallback(async (itemId: string) => {
+    const { data } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('menu_item_id', itemId)
+      .eq('show_on_menu', true)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    setItemReviews((data as Review[]) || []);
+  }, []);
 
   useEffect(() => {
     fetchMenu();
   }, []);
+
+  useEffect(() => {
+    if (detailItem) {
+      fetchItemReviews(detailItem.id);
+    } else {
+      setItemReviews([]);
+    }
+  }, [detailItem, fetchItemReviews]);
 
   const fetchMenu = async () => {
     const { data, error } = await supabase
@@ -115,6 +138,11 @@ export default function MenuScreen({
     setDetailItem(item);
     setDetailQty(1);
     setDetailNotes('');
+  };
+
+  const openReview = (item: MenuItem | null = null) => {
+    setReviewTargetItem(item);
+    setShowReviewModal(true);
   };
 
   const submitDetail = () => {
@@ -442,6 +470,45 @@ export default function MenuScreen({
                 </p>
               </div>
 
+              {/* Reviews */}
+              {itemReviews.length > 0 && (
+                <div className="mt-5">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Star className="h-4 w-4 fill-saffron text-saffron" />
+                    <span className="text-xs font-bold text-ink">Customer Reviews</span>
+                    <span className="font-mono text-xs text-ink-soft">({itemReviews.length})</span>
+                  </div>
+                  <div className="space-y-2">
+                    {itemReviews.map((review) => (
+                      <div key={review.id} className="rounded-xl border border-line bg-bg-alt/40 p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map((s) => (
+                              <Star key={s} className={`h-3 w-3 ${s <= review.rating ? 'fill-saffron text-saffron' : 'text-line'}`} />
+                            ))}
+                          </div>
+                          {review.customer_name && (
+                            <span className="text-xs font-medium text-ink-soft">{review.customer_name}</span>
+                          )}
+                        </div>
+                        {review.comment && (
+                          <p className="mt-1 text-xs leading-relaxed text-ink-soft">"{review.comment}"</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Write review button */}
+              <button
+                onClick={() => openReview(detailItem)}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-line bg-bg-alt/50 py-2.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/40 hover:text-primary"
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                Write a Review
+              </button>
+
               {/* Notes */}
               <div className="mt-5">
                 <label className="mb-2 block text-xs font-bold text-ink">
@@ -484,6 +551,27 @@ export default function MenuScreen({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating review button (mobile) */}
+      <button
+        onClick={() => openReview(null)}
+        className="fixed bottom-24 left-5 z-40 flex items-center gap-1.5 rounded-full border border-line bg-surface/90 px-4 py-2.5 text-xs font-semibold text-ink-soft shadow-md backdrop-blur-sm transition-all hover:border-primary hover:text-primary active:scale-95 lg:hidden"
+        style={{ animation: 'fadeIn 0.4s ease' }}
+      >
+        <Star className="h-3.5 w-3.5" />
+        Review
+      </button>
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <ReviewModal
+          item={reviewTargetItem}
+          onClose={() => {
+            setShowReviewModal(false);
+            setReviewTargetItem(null);
+          }}
+        />
       )}
     </div>
   );

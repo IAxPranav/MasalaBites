@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    /* Customer UI — warm parchment */
     --color-bg: #FFF8EC;
     --color-bg-alt: #FBEED9;
     --color-surface: #FFFFFF;
@@ -15,6 +16,24 @@
     --color-cardamom: #3F6E52;
     --color-chili: #A6261B;
     --color-line: #EADFC9;
+
+    /* Admin UI — pure white professional */
+    --admin-bg: #FFFFFF;
+    --admin-bg-alt: #F7F7F8;
+    --admin-surface: #FFFFFF;
+    --admin-border: #E4E4E7;
+    --admin-border-soft: #F0F0F2;
+    --admin-ink: #111118;
+    --admin-ink-soft: #71717A;
+    --admin-ink-muted: #A1A1AA;
+    --admin-accent: #C1440E;
+    --admin-accent-soft: #FFF1EC;
+    --admin-green: #16A34A;
+    --admin-green-soft: #F0FDF4;
+    --admin-blue: #2563EB;
+    --admin-blue-soft: #EFF6FF;
+    --admin-amber: #D97706;
+    --admin-amber-soft: #FFFBEB;
   }
 
   body {
@@ -39,6 +58,7 @@
 }
 
 @layer components {
+  /* ─── Customer Typography ─────────────────────────── */
   .font-display {
     font-family: 'Fraunces', serif;
   }
@@ -54,6 +74,148 @@
     color: #C1440E;
   }
 
+  /* ─── Admin Typography ────────────────────────────── */
+  .admin-font {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .admin-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  /* ─── Admin Layout ────────────────────────────────── */
+  .admin-shell {
+    min-height: 100vh;
+    background: var(--admin-bg);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--admin-ink);
+  }
+
+  .admin-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--admin-border);
+  }
+
+  .admin-card {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: box-shadow 0.15s ease;
+  }
+  .admin-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  }
+
+  .admin-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.12s ease;
+    border: 1px solid transparent;
+    color: var(--admin-ink-soft);
+  }
+  .admin-tab:hover {
+    background: var(--admin-bg-alt);
+    color: var(--admin-ink);
+  }
+  .admin-tab.is-active {
+    background: var(--admin-ink);
+    color: #FFFFFF;
+    border-color: var(--admin-ink);
+  }
+
+  .admin-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--admin-accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.1s ease;
+  }
+  .admin-btn-primary:hover:not(:disabled) {
+    background: #97350A;
+    transform: translateY(-1px);
+  }
+  .admin-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .admin-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--admin-ink-soft);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .admin-btn-ghost:hover {
+    background: var(--admin-bg-alt);
+    color: var(--admin-ink);
+    border-color: var(--admin-ink-soft);
+  }
+
+  .admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.02em;
+  }
+  .admin-badge-pending {
+    background: var(--admin-amber-soft);
+    color: var(--admin-amber);
+    border: 1px solid #FDE68A;
+  }
+  .admin-badge-preparing {
+    background: var(--admin-blue-soft);
+    color: var(--admin-blue);
+    border: 1px solid #BFDBFE;
+  }
+  .admin-badge-ready {
+    background: var(--admin-green-soft);
+    color: var(--admin-green);
+    border: 1px solid #BBF7D0;
+  }
+  .admin-badge-completed {
+    background: #F4F4F5;
+    color: #71717A;
+    border: 1px solid #E4E4E7;
+  }
+  .admin-badge-cancelled {
+    background: #FFF1F2;
+    color: #E11D48;
+    border: 1px solid #FECDD3;
+  }
+
+  /* ─── Customer Components ─────────────────────────── */
   .btn-primary {
     background: #C1440E;
     color: #FFF6EA;
@@ -239,6 +401,7 @@
     color: #fff;
   }
 
+  /* ─── Animations ──────────────────────────────────── */
   .fade-in {
     animation: fadeIn 0.45s ease both;
   }
@@ -277,5 +440,13 @@
   }
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* ─── Star Rating ─────────────────────────────────── */
+  .star-btn {
+    transition: transform 0.1s ease, color 0.1s ease;
+  }
+  .star-btn:hover {
+    transform: scale(1.2);
   }
 }
