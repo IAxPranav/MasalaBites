@@ -52,12 +52,19 @@ export default function CheckoutScreen({
   // as a home-screen PWA. Every other mobile browser (Android Chrome, etc.) supports
   // it fine, so we only need to guard against that specific case — not all mobile devices.
   const isNotificationUnsupported = () => {
+    if (typeof window === 'undefined') return true;
+
     const ua = navigator.userAgent || '';
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+    if (!isIOS) return false; // Non-iOS supports standard Web Notifications
+
+    // iOS 16.4+ supports notifications ONLY in standalone (PWA) mode
     const isStandalone =
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
       window.matchMedia?.('(display-mode: standalone)').matches;
-    return isIOS && !isStandalone;
+
+    return !isStandalone;
   };
 
   const placeOrder = async (phoneValue: string) => {
@@ -118,12 +125,13 @@ export default function CheckoutScreen({
       return;
     }
 
-    if (allowNotifications && 'Notification' in window && !isNotificationUnsupported()) {
+    // Request Notification permission explicitly on click
+    if (allowNotifications && 'Notification' in window) {
       try {
         if (Notification.permission === 'default') {
           const permission = await Notification.requestPermission();
           if (permission !== 'granted') {
-            console.warn('Notification permission was not granted.');
+            console.warn('Notification permission denied by user.');
           }
         }
       } catch (err) {

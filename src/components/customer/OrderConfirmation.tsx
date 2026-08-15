@@ -29,37 +29,53 @@ export default function OrderConfirmation({
   const previousStatusRef = useRef<string | null>(null);
 
   const isNotificationUnsupported = () => {
+    if (typeof window === 'undefined') return true;
+
     const ua = navigator.userAgent || '';
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+    if (!isIOS) return false; // Non-iOS supports standard Web Notifications
+
+    // iOS 16.4+ supports notifications ONLY in standalone (PWA) mode
     const isStandalone =
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
       window.matchMedia?.('(display-mode: standalone)').matches;
-    return isIOS && !isStandalone;
+
+    return !isStandalone;
   };
   const showStatusAlert = async (title: string, body: string) => {
     try {
       if (
-        notificationsEnabled &&
-        'Notification' in window &&
-        !isNotificationUnsupported() &&
-        Notification.permission === 'granted'
+        !notificationsEnabled ||
+        !('Notification' in window) ||
+        Notification.permission !== 'granted'
       ) {
-        // Mobile requires Service Worker notification trigger
-        if ('serviceWorker' in navigator) {
-          const registration = await navigator.serviceWorker.getRegistration();
-          if (registration && registration.active) {
+        return;
+      }
+
+      // Attempt Service Worker Notification (Primary method for Android & iOS PWA)
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration && registration.showNotification) {
             await registration.showNotification(title, {
               body,
               icon: '/icon-192.png',
+              badge: '/icon-192.png',
               vibrate: [120, 50, 120],
             });
-          } else {
-            new Notification(title, { body });
+            return;
           }
-        } else {
-          new Notification(title, { body });
+        } catch (swErr) {
+          console.warn('SW notification failed, falling back to window Notification:', swErr);
         }
       }
+
+      // Direct Notification Fallback (macOS Safari / Standard Desktop Browsers)
+      new Notification(title, {
+        body,
+        icon: '/icon-192.png',
+      });
 
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate([120, 50, 120]);
