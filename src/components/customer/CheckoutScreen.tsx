@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, CreditCard, Store, CheckCircle2, Loader2, Receipt, Bell } from 'lucide-react';
 import { supabase, type CartItem } from '@/lib/supabase';
+import { generateInvoicePDF } from '@/lib/generateInvoice';
 
 type CheckoutScreenProps = {
   items: CartItem[];
@@ -108,6 +109,20 @@ export default function CheckoutScreen({
       if (itemsError) throw itemsError;
 
       onClearCart();
+
+      // Generate and download PDF invoice for online payments
+      if (paymentMethod === 'online') {
+        generateInvoicePDF({
+          orderId: order.id,
+          tableNumber,
+          customerPhone: cleanPhone,
+          items,
+          subtotal: totalAmount,
+          tax,
+          total: grandTotal,
+        });
+      }
+
       onOrderPlaced(order.id, paymentMethod);
     } catch (err) {
       console.error('Error placing order:', err);
