@@ -95,7 +95,7 @@ export default function AnalyticsView() {
   }
   const maxDailyRev = Math.max(...dailyRevenue.map((d) => d.revenue), 1);
 
-  const formatPrice = (price: number) => `¥${Math.round(price)}`;
+  const formatPrice = (price: number) => `₹${Math.round(price)}`;
 
   const rangeLabels: Record<DateRange, string> = {
     today: 'Today',

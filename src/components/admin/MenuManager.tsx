@@ -147,7 +147,7 @@ export default function MenuManager() {
     });
   };
 
-  const formatPrice = (price: number) => `¥${Math.round(price)}`;
+  const formatPrice = (price: number) => `₹${Math.round(price)}`;
 
   return (
     <div>

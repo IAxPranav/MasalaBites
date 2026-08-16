@@ -176,7 +176,7 @@ export default function OrderConfirmation({
     setLoading(false);
   };
 
-  const formatPrice = (price: number) => `¥${Math.round(price)}`;
+  const formatPrice = (price: number) => `₹${Math.round(price)}`;
   const status = order?.status || 'pending';
   const readyItems = orderItems.filter((item) => item.is_ready);
   const readyItemNames = readyItems.map((item) => item.name);

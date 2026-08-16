@@ -42,7 +42,7 @@ export default function CheckoutScreen({
     setPhoneNumber(customerPhone ?? '');
   }, [customerPhone]);
 
-  const formatPrice = (price: number) => `¥${Math.round(price)}`;
+  const formatPrice = (price: number) => `₹${Math.round(price)}`;
   const taxRate = 0.1;
   const tax = totalAmount * taxRate;
   const grandTotal = totalAmount + tax;

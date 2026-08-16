@@ -155,7 +155,7 @@ export default function MenuScreen({
     setDetailItem(null);
   };
 
-  const formatPrice = (price: number) => `¥${Math.round(price)}`;
+  const formatPrice = (price: number) => `₹${Math.round(price)}`;
 
   return (
     <div className="min-h-screen bg-bg pb-32 lg:pb-12">

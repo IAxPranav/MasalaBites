@@ -56,7 +56,7 @@ export default function IncomeView() {
   const counterCount = filteredOrders.filter((o) => o.payment_method === 'counter').length;
   const onlineCount = filteredOrders.filter((o) => o.payment_method === 'online').length;
 
-  const formatPrice = (price: number) => `¥${Math.round(price)}`;
+  const formatPrice = (price: number) => `₹${Math.round(price)}`;
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleString('en-US', {

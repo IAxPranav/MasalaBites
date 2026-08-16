@@ -22,7 +22,7 @@ export default function CartDrawer({
   totalAmount,
   tableNumber,
 }: CartDrawerProps) {
-  const formatPrice = (price: number) => `¥${Math.round(price)}`;
+  const formatPrice = (price: number) => `₹${Math.round(price)}`;
 
   return (
     <>
