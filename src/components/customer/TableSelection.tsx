@@ -1,0 +1,116 @@
+import { useState } from 'react';
+import { Users, ArrowRight, Flame } from 'lucide-react';
+
+type TableSelectionProps = {
+  onSelect: (table: number) => void;
+};
+
+const TABLES = Array.from({ length: 12 }, (_, i) => ({
+  number: i + 1,
+  capacity: [2, 2, 4, 4, 4, 6, 2, 4, 6, 4, 2, 8][i],
+}));
+
+function StampLogo({ size = 48 }: { size?: number }) {
+  return (
+    <div
+      className="relative flex items-center justify-center rounded-xl border-2 border-primary"
+      style={{ width: size, height: size }}
+    >
+      <div className="flex flex-col items-center justify-center">
+        <Flame className="text-primary" style={{ width: size * 0.3, height: size * 0.3 }} />
+        <span
+          className="font-mono font-bold text-primary leading-none"
+          style={{ fontSize: size * 0.13 }}
+        >
+          MB
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function TableSelection({ onSelect }: TableSelectionProps) {
+  const [selected, setSelected] = useState<number | null>(null);
+
+  return (
+    <div className="min-h-screen bg-bg">
+      {/* Header */}
+      <div className="bg-bg-alt">
+        <div className="mx-auto max-w-6xl px-6 pt-12 pb-8 lg:px-10 lg:pt-16">
+          <div className="flex items-center gap-3">
+            <StampLogo />
+            <div>
+              <p className="eyebrow">Masala Bites</p>
+              <p className="font-display text-lg font-bold text-ink">Modern Indian Kitchen</p>
+            </div>
+          </div>
+          <div className="mt-8 lg:mt-12">
+            <p className="eyebrow mb-2">Step 1</p>
+            <h1 className="font-display text-3xl font-medium leading-tight text-ink lg:text-5xl">
+              Which table<br />are you at?
+            </h1>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-soft lg:text-base">
+              Find your table number on the QR card placed on your table. This helps us bring your
+              order to the right spot.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Table Grid */}
+      <div className="mx-auto max-w-6xl px-6 py-6 lg:px-10 lg:py-10">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-ink">
+            <Users className="h-4 w-4 text-primary" />
+            Select Table
+          </h2>
+          <span className="font-mono text-xs text-ink-soft">12 tables</span>
+        </div>
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+          {TABLES.map((table) => {
+            const isSelected = selected === table.number;
+            return (
+              <button
+                key={table.number}
+                onClick={() => setSelected(table.number)}
+                className={`relative flex flex-col items-center justify-center rounded-2xl border-2 p-5 transition-all duration-200 active:scale-95 lg:p-7 ${
+                  isSelected
+                    ? 'border-primary bg-primary text-surface shadow-lg shadow-primary/20'
+                    : 'border-line bg-surface text-ink hover:border-primary/40 hover:bg-bg-alt'
+                }`}
+              >
+                <span className="font-display text-2xl font-bold lg:text-3xl">{table.number}</span>
+                <span
+                  className={`mt-0.5 font-mono text-[0.65rem] ${
+                    isSelected ? 'text-surface/70' : 'text-ink-soft'
+                  }`}
+                >
+                  {table.capacity} SEATS
+                </span>
+                {isSelected && (
+                  <div className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-surface">
+                    <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          disabled={selected === null}
+          onClick={() => selected && onSelect(selected)}
+          className="btn-primary mt-6 w-full lg:w-auto"
+        >
+          View Menu
+          <ArrowRight className="h-4 w-4" />
+        </button>
+
+        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-ink-soft lg:mt-8">
+          <Flame className="h-3.5 w-3.5 text-primary" />
+          <span>Freshly prepared authentic Indian cuisine</span>
+        </div>
+      </div>
+    </div>
+  );
+}
