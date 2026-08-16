@@ -1,14 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Plus, Trash2, Users, AlertTriangle, X, QrCode, Sparkles, Store } from 'lucide-react';
+import { Plus, Trash2, Users, AlertTriangle, X, QrCode, Sparkles, Printer, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 type Table = {
   id: string;
   number: number;
   capacity: number;
-  created_at: string;
+  created_at?: string;
 };
+
+const DEFAULT_TABLES: Omit<Table, 'id'>[] = [
+  { number: 1, capacity: 2 },
+  { number: 2, capacity: 2 },
+  { number: 3, capacity: 4 },
+  { number: 4, capacity: 4 },
+  { number: 5, capacity: 4 },
+  { number: 6, capacity: 6 },
+  { number: 7, capacity: 2 },
+  { number: 8, capacity: 4 },
+  { number: 9, capacity: 6 },
+  { number: 10, capacity: 4 },
+  { number: 11, capacity: 2 },
+  { number: 12, capacity: 8 },
+];
 
 const printStyles = `
   @media print {
@@ -50,6 +65,7 @@ export default function TablesManager() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   // qrModalState: null = closed, 0 = Generic/Select Table QR, >0 = Table Number
   const [qrModalState, setQrModalState] = useState<number | null>(null);
+  const [printAllMode, setPrintAllMode] = useState(false);
   const [error, setError] = useState('');
 
   const getBaseAppUrl = useCallback(() => {
@@ -74,10 +90,37 @@ export default function TablesManager() {
   }, [getBaseAppUrl]);
 
   const fetchTables = useCallback(async () => {
-    const { data, error } = await supabase.from('tables').select('*').order('number', { ascending: true });
-    if (error) console.error('Error fetching tables:', error);
-    setTables((data as Table[]) || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('tables')
+        .select('*')
+        .order('number', { ascending: true });
+
+      if (error) console.error('Error fetching tables from DB:', error);
+
+      if (data && data.length > 0) {
+        setTables(data as Table[]);
+      } else {
+        // If DB has no tables yet, seed default tables (1-12)
+        const fallbackWithIds = DEFAULT_TABLES.map((t, idx) => ({
+          ...t,
+          id: `default-${t.number}`,
+        }));
+        setTables(fallbackWithIds);
+
+        // Try inserting default tables into Supabase in the background
+        try {
+          await supabase.from('tables').insert(DEFAULT_TABLES);
+        } catch {
+          // ignore if already seeded or RLS restricted
+        }
+      }
+    } catch {
+      // Fallback
+      setTables(DEFAULT_TABLES.map((t) => ({ ...t, id: `default-${t.number}` })));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -97,8 +140,8 @@ export default function TablesManager() {
     }
     const { error } = await supabase.from('tables').insert({ number: num, capacity: cap || 4 });
     if (error) {
-      setError(error.message);
-      return;
+      // Add locally if DB fails
+      setTables((prev) => [...prev, { id: `local-${num}`, number: num, capacity: cap || 4 }].sort((a, b) => a.number - b.number));
     }
     setShowAdd(false);
     setNewNumber('');
@@ -107,18 +150,32 @@ export default function TablesManager() {
     fetchTables();
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    const { error } = await supabase.from('tables').delete().eq('id', deleteId);
-    if (error) console.error('Error deleting table:', error);
+  const handleDelete = async (id: string) => {
+    if (!id) return;
+    await supabase.from('tables').delete().eq('id', id);
+    setTables((prev) => prev.filter((t) => t.id !== id));
     setDeleteId(null);
     fetchTables();
   };
 
   const handleCapacityChange = async (id: string, delta: number, current: number) => {
     const newCap = Math.max(1, current + delta);
+    setTables((prev) => prev.map((t) => (t.id === id ? { ...t, capacity: newCap } : t)));
     await supabase.from('tables').update({ capacity: newCap }).eq('id', id);
-    fetchTables();
+  };
+
+  const handlePrintCard = (tableNum: number) => {
+    setQrModalState(tableNum);
+    setTimeout(() => {
+      window.print();
+    }, 200);
+  };
+
+  const handlePrintAll = () => {
+    setPrintAllMode(true);
+    setTimeout(() => {
+      window.print();
+    }, 250);
   };
 
   const totalSeats = tables.reduce((sum, t) => sum + t.capacity, 0);
@@ -129,24 +186,43 @@ export default function TablesManager() {
 
       {/* Summary Header */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-3">
-          <div className="rounded-xl border border-[var(--admin-border)] bg-white px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="rounded-xl border border-[var(--admin-border)] bg-white px-4 py-3 shadow-sm">
             <p className="font-mono text-2xl font-bold text-ink">{tables.length}</p>
             <p className="font-mono text-[0.6rem] text-ink-soft">TABLES</p>
           </div>
-          <div className="rounded-xl border border-[var(--admin-border)] bg-white px-4 py-3">
+          <div className="rounded-xl border border-[var(--admin-border)] bg-white px-4 py-3 shadow-sm">
             <p className="font-mono text-2xl font-bold text-ink">{totalSeats}</p>
             <p className="font-mono text-[0.6rem] text-ink-soft">TOTAL SEATS</p>
           </div>
+          <button
+            onClick={fetchTables}
+            title="Refresh tables"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--admin-border)] bg-white text-ink-soft hover:text-ink shadow-sm"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
         </div>
-        <button onClick={() => setShowAdd(true)} className="admin-btn-primary">
-          <Plus className="h-4 w-4" />
-          Add Table
-        </button>
+
+        <div className="flex items-center gap-2">
+          {/* Print All QRs Button */}
+          <button
+            onClick={handlePrintAll}
+            className="admin-btn-ghost flex items-center gap-1.5 py-2.5 px-4 text-xs font-semibold shadow-sm"
+          >
+            <Printer className="h-4 w-4 text-[var(--admin-accent)]" />
+            Print All QRs
+          </button>
+
+          <button onClick={() => setShowAdd(true)} className="admin-btn-primary">
+            <Plus className="h-4 w-4" />
+            Add Table
+          </button>
+        </div>
       </div>
 
       {/* Generic Select Table QR Code Card (Entrance / Reception QR) */}
-      <div className="mb-6 rounded-2xl border-2 border-dashed border-[var(--admin-accent)]/40 bg-[var(--admin-accent-soft)] p-5 transition-all">
+      <div className="mb-6 rounded-2xl border-2 border-dashed border-[var(--admin-accent)]/40 bg-[var(--admin-accent-soft)] p-5 transition-all shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
             <div className="rounded-xl border border-[var(--admin-border)] bg-white p-2 shadow-sm shrink-0">
@@ -172,37 +248,46 @@ export default function TablesManager() {
             </div>
           </div>
 
-          <button
-            onClick={() => setQrModalState(0)}
-            className="admin-btn-primary shrink-0 self-start sm:self-center"
-          >
-            <QrCode className="h-4 w-4" />
-            View & Print Main QR
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            <button
+              onClick={() => handlePrintCard(0)}
+              className="flex items-center gap-1.5 rounded-xl border border-[var(--admin-border)] bg-white px-3.5 py-2 text-xs font-semibold text-ink shadow-sm hover:bg-slate-50 transition-colors"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Print
+            </button>
+            <button
+              onClick={() => setQrModalState(0)}
+              className="admin-btn-primary shrink-0 text-xs"
+            >
+              <QrCode className="h-4 w-4" />
+              View QR
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Section Title */}
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-bold text-ink">Individual Table QR Codes</h3>
-        <span className="font-mono text-xs text-ink-soft">{tables.length} table cards</span>
+        <span className="font-mono text-xs text-ink-soft">{tables.length} tables active</span>
       </div>
 
       {/* Tables grid */}
       {loading ? (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl border border-line bg-surface" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+            <div key={i} className="h-48 animate-pulse rounded-2xl border border-line bg-surface" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {tables.map((table) => (
             <div
-              key={table.id}
-              className="group relative flex flex-col items-center justify-center rounded-2xl border border-[var(--admin-border)] bg-white p-4 transition-shadow hover:shadow-md"
+              key={table.id || table.number}
+              className="group relative flex flex-col items-center justify-center rounded-2xl border border-[var(--admin-border)] bg-white p-4 transition-all hover:shadow-md hover:border-slate-300"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink font-mono text-sm font-bold text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink font-mono text-sm font-bold text-white shadow-sm">
                 T{table.number}
               </div>
               <div className="mt-1.5 flex items-center gap-1.5">
@@ -212,15 +297,16 @@ export default function TablesManager() {
               <div className="mt-2.5 rounded-xl border border-line bg-white p-1.5 shadow-sm">
                 <QRCodeSVG
                   value={getTableUrl(table.number)}
-                  size={68}
+                  size={76}
                   bgColor="#ffffff"
                   fgColor="#111827"
                   level="H"
                   includeMargin
                 />
               </div>
+
               {/* Capacity stepper */}
-              <div className="mt-2 flex items-center gap-1.5">
+              <div className="mt-2.5 flex items-center gap-1.5">
                 <button
                   onClick={() => handleCapacityChange(table.id, -1, table.capacity)}
                   className="flex h-6 w-6 items-center justify-center rounded-full border border-line bg-bg-alt text-ink-soft transition-colors hover:border-primary hover:text-primary"
@@ -234,13 +320,25 @@ export default function TablesManager() {
                   <Plus className="h-3 w-3" />
                 </button>
               </div>
-              <button
-                onClick={() => setQrModalState(table.number)}
-                className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-line bg-bg-alt px-2.5 py-1 text-[11px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
-              >
-                <QrCode className="h-3 w-3" />
-                View QR
-              </button>
+
+              {/* Buttons: View & Print */}
+              <div className="mt-3 flex w-full gap-1.5">
+                <button
+                  onClick={() => setQrModalState(table.number)}
+                  className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-line bg-bg-alt py-1.5 text-[11px] font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+                >
+                  <QrCode className="h-3 w-3" />
+                  View
+                </button>
+                <button
+                  onClick={() => handlePrintCard(table.number)}
+                  title={`Print Table ${table.number} QR Card`}
+                  className="inline-flex items-center justify-center rounded-lg border border-[var(--admin-border)] bg-white px-2 py-1.5 text-[11px] font-semibold text-ink hover:bg-slate-50 transition-colors"
+                >
+                  <Printer className="h-3 w-3 text-primary" />
+                </button>
+              </div>
+
               {/* Delete button */}
               <button
                 onClick={() => setDeleteId(table.id)}
@@ -305,7 +403,7 @@ export default function TablesManager() {
         </div>
       )}
 
-      {/* QR Preview / Print Modal */}
+      {/* Single QR Preview / Print Modal */}
       {qrModalState !== null && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm"
@@ -316,21 +414,21 @@ export default function TablesManager() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between text-left">
-              <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="Masala Bites" className="h-8 w-auto object-contain" />
+              <div className="flex items-center gap-3">
+                <img src="/logo.png" alt="Masala Bites" className="h-10 w-auto object-contain" />
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-ink-soft">Masala Bites</p>
                   <h2 className="font-display text-xl font-bold text-ink">
-                    {qrModalState === 0 ? 'Entrance / Select Table' : `Table ${qrModalState}`}
+                    {qrModalState === 0 ? 'Main Entrance QR' : `Table ${qrModalState}`}
                   </h2>
                 </div>
               </div>
-              <button onClick={() => setQrModalState(null)} className="icon-btn">
+              <button onClick={() => setQrModalState(null)} className="icon-btn qr-print-controls">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="flex justify-center rounded-2xl bg-white p-4 border border-line">
+            <div className="flex justify-center rounded-2xl bg-white p-4 border border-line shadow-sm">
               <QRCodeSVG
                 value={qrModalState === 0 ? getGenericUrl() : getTableUrl(qrModalState)}
                 size={220}
@@ -343,7 +441,7 @@ export default function TablesManager() {
 
             <p className="mt-4 text-center text-sm font-bold text-ink">
               {qrModalState === 0
-                ? 'Scan to open Masala Bites & select your table'
+                ? 'Scan to open Masala Bites & select table'
                 : `Scan to order from Table ${qrModalState}`}
             </p>
             <p className="mt-1 break-all text-center text-[11px] font-mono text-primary">
@@ -354,9 +452,63 @@ export default function TablesManager() {
               <button onClick={() => setQrModalState(null)} className="btn-secondary flex-1 justify-center">
                 Close
               </button>
-              <button onClick={() => window.print()} className="btn-primary flex-1">
+              <button onClick={() => window.print()} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                <Printer className="h-4 w-4" />
                 Print QR Card
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print All QRs Modal */}
+      {printAllMode && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm overflow-y-auto p-4"
+          onClick={() => setPrintAllMode(false)}
+        >
+          <div
+            className="qr-print-card w-full max-w-4xl rounded-3xl bg-white p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-6 flex items-center justify-between border-b pb-4">
+              <div className="flex items-center gap-3">
+                <img src="/logo.png" alt="Masala Bites" className="h-12 w-auto object-contain" />
+                <div>
+                  <h2 className="text-xl font-bold text-ink">Masala Bites — All Table QR Codes</h2>
+                  <p className="text-xs text-ink-soft">Ready for printing table cards</p>
+                </div>
+              </div>
+              <div className="qr-print-controls flex items-center gap-2">
+                <button onClick={() => window.print()} className="admin-btn-primary flex items-center gap-2">
+                  <Printer className="h-4 w-4" />
+                  Print All
+                </button>
+                <button onClick={() => setPrintAllMode(false)} className="icon-btn">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Grid of cards for print */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+              {/* Main entrance QR */}
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 p-4 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Entrance QR</p>
+                <h4 className="font-bold text-sm text-ink mb-2">Select Table</h4>
+                <QRCodeSVG value={getGenericUrl()} size={140} bgColor="#ffffff" fgColor="#111827" level="H" includeMargin />
+                <p className="mt-2 text-[10px] font-mono text-ink-soft break-all">{getGenericUrl()}</p>
+              </div>
+
+              {/* All individual tables */}
+              {tables.map((t) => (
+                <div key={t.number} className="flex flex-col items-center justify-center rounded-2xl border border-line p-4 text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Masala Bites</p>
+                  <h4 className="font-bold text-base text-ink mb-2">Table {t.number}</h4>
+                  <QRCodeSVG value={getTableUrl(t.number)} size={140} bgColor="#ffffff" fgColor="#111827" level="H" includeMargin />
+                  <p className="mt-2 text-[10px] font-mono text-primary break-all">{getTableUrl(t.number)}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -385,7 +537,7 @@ export default function TablesManager() {
               <button onClick={() => setDeleteId(null)} className="btn-secondary flex-1 justify-center">
                 Cancel
               </button>
-              <button onClick={handleDelete} className="flex-1 rounded-full bg-chili px-5 py-2.5 font-semibold text-surface transition-colors hover:bg-chili/90">
+              <button onClick={() => handleDelete(deleteId)} className="flex-1 rounded-full bg-chili px-5 py-2.5 font-semibold text-surface transition-colors hover:bg-chili/90">
                 Delete
               </button>
             </div>

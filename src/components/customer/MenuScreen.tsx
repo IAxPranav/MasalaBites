@@ -184,7 +184,7 @@ export default function MenuScreen({
               <img
                 src="/logo.png"
                 alt="Masala Bites"
-                className="h-10 w-auto object-contain rounded-xl"
+                className="h-14 sm:h-16 w-auto object-contain"
               />
             </div>
           </div>

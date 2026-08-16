@@ -42,7 +42,7 @@ export default function TableSelection({
               <img
                 src="/logo.png"
                 alt="Masala Bites"
-                className="h-14 w-auto object-contain rounded-xl"
+                className="h-20 sm:h-24 w-auto object-contain transition-transform hover:scale-105"
               />
               <div>
                 <p className="eyebrow">Masala Bites</p>

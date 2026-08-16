@@ -103,7 +103,7 @@ export default function CashCounterPanel({ onExit }: CashCounterPanelProps) {
               <img
                 src="/logo.png"
                 alt="Masala Bites"
-                className="h-10 w-auto object-contain rounded-xl"
+                className="h-12 w-auto object-contain"
               />
               <div>
                 <h1 className="text-base font-bold text-[var(--admin-ink)] lg:text-lg" style={{ fontFamily: 'Inter, sans-serif' }}>Cash Counter</h1>

@@ -45,7 +45,7 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
               <img
                 src="/logo.png"
                 alt="Masala Bites"
-                className="h-9 w-auto object-contain rounded-lg shadow-sm"
+                className="h-12 w-auto object-contain"
               />
               <div>
                 <h1 className="admin-font text-sm font-bold text-[var(--admin-ink)] lg:text-base">
