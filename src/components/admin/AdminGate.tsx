@@ -48,9 +48,11 @@ export default function AdminGate({ children, onExit }: AdminGateProps) {
 
         <div className="rounded-3xl border border-line bg-surface p-8 shadow-xl">
           <div className="mb-6 flex flex-col items-center text-center">
-            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-ink">
-              <Flame className="h-8 w-8 text-primary" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Masala Bites"
+              className="mb-3 h-16 w-auto object-contain rounded-2xl"
+            />
             <h1 className="font-display text-xl font-bold text-ink">Admin Panel</h1>
             <p className="mt-1 text-xs text-ink-soft">Authorized access only</p>
           </div>

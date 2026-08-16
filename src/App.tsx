@@ -141,7 +141,7 @@ function App() {
   };
 
   if (view === 'grocery') {
-    return <GroceryStore onBack={() => setView('table')} />;
+    return <GroceryStore onBack={() => setView(tableNumber ? 'menu' : 'table')} />;
   }
 
   if (view === 'table') {
@@ -171,6 +171,7 @@ function App() {
           cartTotal={totalAmount}
           activeOrderId={placedOrderId}
           onViewOrderStatus={() => setView('confirmation')}
+          onOpenGrocery={() => setView('grocery')}
         />
         <CartDrawer
           open={cartOpen}

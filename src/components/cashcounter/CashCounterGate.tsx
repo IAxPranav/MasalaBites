@@ -49,9 +49,11 @@ export default function CashCounterGate({ children, onExit }: CashCounterGatePro
         <div className="rounded-2xl border border-[var(--admin-border)] bg-white p-8 shadow-lg">
           {/* Logo */}
           <div className="mb-6 flex flex-col items-center text-center">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--admin-accent)] bg-[var(--admin-accent-soft)]">
-              <Receipt className="h-7 w-7 text-[var(--admin-accent)]" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Masala Bites"
+              className="mb-3 h-14 w-auto object-contain rounded-2xl"
+            />
             <h1 className="text-xl font-bold text-[var(--admin-ink)]">Cash Counter</h1>
             <p className="mt-1 text-xs text-[var(--admin-ink-soft)]">Staff access only</p>
           </div>

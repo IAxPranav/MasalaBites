@@ -100,9 +100,11 @@ export default function CashCounterPanel({ onExit }: CashCounterPanelProps) {
         <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-[var(--admin-accent)] bg-[var(--admin-accent-soft)]">
-                <Receipt className="h-5 w-5 text-[var(--admin-accent)]" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="Masala Bites"
+                className="h-10 w-auto object-contain rounded-xl"
+              />
               <div>
                 <h1 className="text-base font-bold text-[var(--admin-ink)] lg:text-lg" style={{ fontFamily: 'Inter, sans-serif' }}>Cash Counter</h1>
                 <p className="text-[0.68rem] tracking-widest uppercase text-[var(--admin-ink-soft)]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>

@@ -49,9 +49,11 @@ export default function KitchenGate({ children, onExit }: KitchenGateProps) {
         <div className="rounded-3xl border border-line bg-surface p-8 shadow-xl">
           {/* Logo */}
           <div className="mb-6 flex flex-col items-center text-center">
-            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-primary">
-              <Flame className="h-8 w-8 text-primary" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Masala Bites"
+              className="mb-3 h-16 w-auto object-contain rounded-2xl"
+            />
             <h1 className="font-display text-xl font-bold text-ink">Kitchen Panel</h1>
             <p className="mt-1 text-xs text-ink-soft">Staff access only</p>
           </div>

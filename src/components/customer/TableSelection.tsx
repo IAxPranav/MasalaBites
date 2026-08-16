@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, ArrowRight, Flame, ShoppingBag } from 'lucide-react';
+import { Users, ArrowRight, Flame, ShoppingBag, Store } from 'lucide-react';
 
 type TableSelectionProps = {
   customerPhone: string | null;
@@ -12,25 +12,6 @@ const TABLES = Array.from({ length: 12 }, (_, i) => ({
   number: i + 1,
   capacity: [2, 2, 4, 4, 4, 6, 2, 4, 6, 4, 2, 8][i],
 }));
-
-function StampLogo({ size = 48 }: { size?: number }) {
-  return (
-    <div
-      className="relative flex items-center justify-center rounded-xl border-2 border-primary"
-      style={{ width: size, height: size }}
-    >
-      <div className="flex flex-col items-center justify-center">
-        <Flame className="text-primary" style={{ width: size * 0.3, height: size * 0.3 }} />
-        <span
-          className="font-mono font-bold text-primary leading-none"
-          style={{ fontSize: size * 0.13 }}
-        >
-          MB
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export default function TableSelection({
   customerPhone,
@@ -54,16 +35,33 @@ export default function TableSelection({
   return (
     <div className="min-h-screen bg-bg">
       {/* Header */}
-      <div className="bg-bg-alt">
-        <div className="mx-auto max-w-6xl px-6 pt-12 pb-8 lg:px-10 lg:pt-16">
-          <div className="flex items-center gap-3">
-            <StampLogo />
-            <div>
-              <p className="eyebrow">Masala Bites</p>
-              <p className="font-display text-lg font-bold text-ink">Modern Indian Kitchen</p>
+      <div className="bg-bg-alt border-b border-line">
+        <div className="mx-auto max-w-6xl px-6 pt-8 pb-8 lg:px-10 lg:pt-12">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img
+                src="/logo.png"
+                alt="Masala Bites"
+                className="h-14 w-auto object-contain rounded-xl"
+              />
+              <div>
+                <p className="eyebrow">Masala Bites</p>
+                <p className="font-display text-lg font-bold text-ink">Modern Indian Kitchen</p>
+              </div>
             </div>
+
+            {/* Grocery button in header */}
+            <button
+              onClick={onGroceryStore}
+              className="flex items-center gap-1.5 rounded-full border border-cardamom/40 bg-cardamom/10 px-4 py-2 text-xs font-bold text-cardamom transition-all hover:bg-cardamom/20 active:scale-95 shadow-sm"
+            >
+              <Store className="h-4 w-4" />
+              <span className="hidden sm:inline">Grocery Store</span>
+              <span className="sm:hidden">Grocery</span>
+            </button>
           </div>
-          <div className="mt-8 lg:mt-12">
+
+          <div className="mt-8 lg:mt-10">
             <p className="eyebrow mb-2">Step 1</p>
             <h1 className="font-display text-3xl font-medium leading-tight text-ink lg:text-5xl">
               Which table<br />are you at?
@@ -146,21 +144,21 @@ export default function TableSelection({
           <span>Freshly prepared authentic Indian cuisine</span>
         </div>
 
-        {/* Grocery Store CTA */}
+        {/* Grocery Store CTA Card */}
         <div className="mt-8 rounded-2xl border border-dashed border-cardamom/40 bg-cardamom/5 p-5 text-center">
           <div className="mb-2 flex justify-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-cardamom/30 bg-cardamom/10">
               <ShoppingBag className="h-6 w-6 text-cardamom" />
             </div>
           </div>
-          <p className="text-sm font-bold text-ink">Masala Bites Grocery</p>
-          <p className="mt-0.5 text-xs text-ink-soft">Shop fresh spices & meal kits at home</p>
+          <p className="text-sm font-bold text-ink">Masala Bites Grocery Store</p>
+          <p className="mt-0.5 text-xs text-ink-soft">Shop authentic spices, ingredients & ready meal kits at home</p>
           <button
             onClick={onGroceryStore}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-cardamom/40 bg-cardamom/10 px-4 py-2.5 text-xs font-bold text-cardamom transition-all hover:bg-cardamom/20 active:scale-95"
+            className="mt-3 inline-flex items-center justify-center gap-2 rounded-full border border-cardamom/40 bg-cardamom/10 px-6 py-2.5 text-xs font-bold text-cardamom transition-all hover:bg-cardamom/20 active:scale-95 shadow-sm"
           >
             <ShoppingBag className="h-3.5 w-3.5" />
-            Visit Grocery Store
+            Visit Grocery Store (Coming Soon)
           </button>
         </div>
       </div>

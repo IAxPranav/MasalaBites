@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Plus, Minus, X, Flame, Star, ShoppingBag, ChefHat, Receipt, MessageSquare } from 'lucide-react';
+import { Search, Plus, Minus, X, Flame, Star, ShoppingBag, ChefHat, Receipt, MessageSquare, Store } from 'lucide-react';
 import { supabase, CATEGORIES, type MenuItem, type CartItem, type Review, spiceLabel } from '@/lib/supabase';
 import ReviewModal from '@/components/customer/ReviewModal';
 
@@ -13,6 +13,7 @@ type MenuScreenProps = {
   cartTotal: number;
   activeOrderId: string | null;
   onViewOrderStatus: () => void;
+  onOpenGrocery: () => void;
 };
 
 function VegMark({ veg, size = 16 }: { veg: boolean; size?: number }) {
@@ -54,6 +55,7 @@ export default function MenuScreen({
   cartTotal,
   activeOrderId,
   onViewOrderStatus,
+  onOpenGrocery,
 }: MenuScreenProps) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,42 +170,22 @@ export default function MenuScreen({
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Active order status button (desktop only, mobile uses FAB) */}
-              {activeOrderId && (
-                <button
-                  onClick={onViewOrderStatus}
-                  className="hidden items-center gap-1.5 rounded-full border border-cardamom/30 bg-cardamom/10 px-3 py-2 text-xs font-semibold text-cardamom transition-all hover:bg-cardamom/20 active:scale-95 sm:flex"
-                >
-                  <Receipt className="h-3.5 w-3.5" />
-                  <span>Order Status</span>
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cardamom opacity-60" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-cardamom" />
-                  </span>
-                </button>
-              )}
-              {/* Cart button - always visible on desktop */}
+              {/* Grocery Store Button */}
               <button
-                onClick={onOpenCart}
-                className={`hidden items-center gap-2.5 rounded-full px-5 py-2.5 text-sm font-semibold transition-all active:scale-95 lg:flex ${
-                  cartCount > 0
-                    ? 'bg-primary text-surface shadow-lg shadow-primary/20 hover:bg-primary-dark'
-                    : 'border border-line bg-surface text-ink-soft hover:border-primary/40'
-                }`}
+                onClick={onOpenGrocery}
+                className="flex items-center gap-1.5 rounded-full border border-cardamom/40 bg-cardamom/10 px-3.5 py-2 text-xs font-bold text-cardamom transition-all hover:bg-cardamom/20 active:scale-95 shadow-sm"
               >
-                <ShoppingBag className="h-4 w-4" />
-                {cartCount > 0 ? (
-                  <>
-                    <span className="font-mono">{cartCount}</span>
-                    <span className="font-mono">{formatPrice(cartTotal)}</span>
-                  </>
-                ) : (
-                  <span>Cart</span>
-                )}
+                <Store className="h-4 w-4" />
+                <span className="hidden sm:inline">Grocery Store</span>
+                <span className="sm:hidden">Grocery</span>
               </button>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-primary">
-                <Flame className="h-5 w-5 text-primary" />
-              </div>
+
+              {/* Logo */}
+              <img
+                src="/logo.png"
+                alt="Masala Bites"
+                className="h-10 w-auto object-contain rounded-xl"
+              />
             </div>
           </div>
 
@@ -360,8 +342,8 @@ export default function MenuScreen({
         )}
       </div>
 
-      {/* Floating buttons - Bottom Right (mobile only) */}
-      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-center gap-3 lg:hidden">
+      {/* Floating buttons - Bottom Right (Consistent on all screen sizes) */}
+      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-center gap-3">
         {/* Order Status FAB - above cart */}
         {activeOrderId && (
           <button
@@ -553,14 +535,14 @@ export default function MenuScreen({
         </div>
       )}
 
-      {/* Floating review button (mobile) */}
+      {/* Floating review button */}
       <button
         onClick={() => openReview(null)}
-        className="fixed bottom-24 left-5 z-40 flex items-center gap-1.5 rounded-full border border-line bg-surface/90 px-4 py-2.5 text-xs font-semibold text-ink-soft shadow-md backdrop-blur-sm transition-all hover:border-primary hover:text-primary active:scale-95 lg:hidden"
+        className="fixed bottom-5 left-5 z-40 flex items-center gap-1.5 rounded-full border border-line bg-surface/95 px-4 py-2.5 text-xs font-semibold text-ink-soft shadow-lg backdrop-blur-sm transition-all hover:border-primary hover:text-primary active:scale-95"
         style={{ animation: 'fadeIn 0.4s ease' }}
       >
-        <Star className="h-3.5 w-3.5" />
-        Review
+        <Star className="h-3.5 w-3.5 fill-saffron text-saffron" />
+        <span>Reviews</span>
       </button>
 
       {/* Review Modal */}

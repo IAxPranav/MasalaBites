@@ -42,9 +42,11 @@ export default function AdminPanel({ onExit }: AdminPanelProps) {
           <div className="flex items-center justify-between py-3">
             {/* Logo + Title */}
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--admin-accent)]">
-                <Flame className="h-5 w-5 text-white" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="Masala Bites"
+                className="h-9 w-auto object-contain rounded-lg shadow-sm"
+              />
               <div>
                 <h1 className="admin-font text-sm font-bold text-[var(--admin-ink)] lg:text-base">
                   Masala Bites
