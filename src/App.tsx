@@ -70,13 +70,7 @@ function App() {
 
     if (applyHash(hash)) return;
 
-
-    if (savedOrderId && tableNumber) {
-      setPlacedOrderId(savedOrderId);
-      setView('confirmation');
-      return;
-    }
-
+    // 1. URL Table parameter ALWAYS takes top priority (QR code scan)
     const tableParam = params.get('table');
     if (tableParam) {
       const num = parseInt(tableParam, 10);
@@ -87,9 +81,18 @@ function App() {
       }
     }
 
+    // 2. If table is already selected in state, go to menu
     if (tableNumber) {
+      // Check if user has an active order to view
+      if (savedOrderId) {
+        setPlacedOrderId(savedOrderId);
+      }
       setView('menu');
+      return;
     }
+
+    // 3. Fallback: Table selection page
+    setView('table');
   }, [tableNumber, setTableNumber]);
 
   useEffect(() => {
@@ -98,6 +101,9 @@ function App() {
     const normalizePhone = (phone: string) => phone.replace(/\D/g, '');
     const phoneValue = normalizePhone(customerPhone);
     if (!phoneValue) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const hasTableInUrl = !!params.get('table');
 
     const fetchLatestOrder = async () => {
       const { data, error } = await supabase
@@ -110,10 +116,16 @@ function App() {
 
       if (error || !data) return;
 
-      setPlacedOrderId(data.id);
-      setTableNumber(data.table_number);
-      window.localStorage.setItem(ACTIVE_ORDER_KEY, data.id);
-      setView('confirmation');
+      // Only track if order is currently active (in progress)
+      if (['pending', 'preparing', 'ready'].includes(data.status)) {
+        setPlacedOrderId(data.id);
+        window.localStorage.setItem(ACTIVE_ORDER_KEY, data.id);
+
+        // Only override table if customer didn't explicitly scan a specific table URL
+        if (!hasTableInUrl) {
+          setTableNumber(data.table_number);
+        }
+      }
     };
 
     fetchLatestOrder();
@@ -172,6 +184,7 @@ function App() {
           activeOrderId={placedOrderId}
           onViewOrderStatus={() => setView('confirmation')}
           onOpenGrocery={() => setView('grocery')}
+          onChangeTable={() => setView('table')}
         />
         <CartDrawer
           open={cartOpen}

@@ -14,6 +14,7 @@ type MenuScreenProps = {
   activeOrderId: string | null;
   onViewOrderStatus: () => void;
   onOpenGrocery: () => void;
+  onChangeTable?: () => void;
 };
 
 function VegMark({ veg, size = 16 }: { veg: boolean; size?: number }) {
@@ -56,6 +57,7 @@ export default function MenuScreen({
   activeOrderId,
   onViewOrderStatus,
   onOpenGrocery,
+  onChangeTable,
 }: MenuScreenProps) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,7 +167,14 @@ export default function MenuScreen({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
-                <p className="eyebrow">Table {tableNumber}</p>
+                <button
+                  onClick={onChangeTable}
+                  title="Click to switch table"
+                  className="eyebrow flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <span>Table {tableNumber}</span>
+                  <span className="text-[10px] lowercase text-ink-soft/70">(change)</span>
+                </button>
                 <h1 className="font-display text-xl font-bold text-ink lg:text-2xl">Our Menu</h1>
               </div>
             </div>
